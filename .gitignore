@@ -1,0 +1,21 @@
+# Secrets and local credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.aws/
+**/credentials
+**/credentials.*
+aws-credentials*
+
+# Local environments and generated files
+**/.venv/
+**/node_modules/
+**/dist/
+**/__pycache__/
+**/.pytest_cache/
+data/processed/
+
+# Keep the source CSV out of Git until its redistribution terms are confirmed.
+data/raw/*.csv
