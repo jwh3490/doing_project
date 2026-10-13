@@ -6,14 +6,14 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  --paper: #fbfaf6;
-  --ink: #243632;
-  --muted: #71807a;
-  --line: #e2e5df;
-  --line-strong: #d1d8d1;
-  --teal: #247d72;
-  --coral: #d47745;
-  --amber: #d1a253;
+  --paper: #f2f7fa;
+  --ink: #102d42;
+  --muted: #637b8b;
+  --line: #d9e5eb;
+  --line-strong: #bfd2dc;
+  --teal: #007e9f;
+  --coral: #ef6d4d;
+  --amber: #f2b544;
   --sans: 'DM Sans', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
   --mono: 'IBM Plex Mono', Consolas, monospace;
 }

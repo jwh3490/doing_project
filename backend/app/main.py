@@ -2,6 +2,7 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException, Query
 
 from .data import AirportData, load_data
+from .cruise import cruise_summary
 from .forecast import forecast_months
 
 
@@ -18,6 +19,14 @@ def _load_or_error() -> AirportData:
 @app.get("/api/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/api/cruise")
+def cruise() -> dict:
+    try:
+        return cruise_summary()
+    except ValueError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
 
 
 @app.get("/api/dashboard")
@@ -54,13 +63,24 @@ def dashboard() -> dict:
 @app.get("/api/airports")
 def airports() -> dict:
     dataset = _load_or_error()
-    names = sorted(dataset.airport_rows["airport"].dropna().unique().tolist())
-    latest_rows = dataset.airport_rows[
-        dataset.airport_rows["month"] == dataset.monthly_total.index[-1]
+    international_rows = dataset.airport_rows[dataset.airport_rows["country"] != "대한민국"]
+    airport_info = (
+        international_rows[["airport", "code", "country"]]
+        .drop_duplicates()
+        .sort_values(["country", "airport"])
+    )
+    latest_rows = international_rows[
+        international_rows["month"] == dataset.monthly_total.index[-1]
     ]
     recent_totals = latest_rows.groupby("airport")["passengers"].sum().sort_values(ascending=False)
     default_airport = str(recent_totals.index[0]) if not recent_totals.empty else (names[0] if names else None)
-    return {"airports": names, "default_airport": default_airport}
+    return {
+        "airports": [
+            {"name": row.airport, "code": row.code, "country": row.country}
+            for row in airport_info.itertuples(index=False)
+        ],
+        "default_airport": default_airport,
+    }
 
 
 @app.get("/api/airport-trend")
@@ -69,6 +89,8 @@ def airport_trend(name: str = Query(min_length=1)) -> dict:
     rows = dataset.airport_rows[dataset.airport_rows["airport"] == name]
     if rows.empty:
         raise HTTPException(status_code=404, detail="선택한 출발 공항의 자료가 없습니다.")
+    if str(rows.iloc[0]["country"]) == "대한민국":
+        raise HTTPException(status_code=404, detail="국내 공항은 출발 공항 분석 대상에서 제외됩니다.")
 
     monthly = rows.groupby("month")["passengers"].sum()
     full_months = pd.date_range(dataset.monthly_total.index[0], dataset.monthly_total.index[-1], freq="MS")
@@ -80,4 +102,9 @@ def airport_trend(name: str = Query(min_length=1)) -> dict:
         }
         for month, value in aligned.items()
     ]
-    return {"airport": name, "series": series}
+    return {
+        "airport": name,
+        "code": str(rows.iloc[0]["code"]),
+        "country": str(rows.iloc[0]["country"]),
+        "series": series,
+    }
