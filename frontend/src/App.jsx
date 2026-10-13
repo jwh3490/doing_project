@@ -1,9 +1,21 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import * as L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 import {
   Activity,
   ArrowDownRight,
   ArrowUpRight,
   CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  ExternalLink,
+  Clock3,
+  MapPin,
+  Map as MapIcon,
+  LayoutGrid,
+  Phone,
+  Search,
+  Utensils,
   PlaneLanding,
   RefreshCw,
   Ship,
@@ -149,10 +161,198 @@ function ChartTooltip({ active, payload, label, selectedMethod, comparePrevious 
   )
 }
 
+function FestivalCalendar({ data }) {
+  const today = new Date()
+  const initialMonth = data.events.find((event) => event.start_date >= today.toISOString().slice(0, 10))?.start_date.slice(0, 7)
+    || data.events.at(-1)?.start_date.slice(0, 7)
+    || today.toISOString().slice(0, 7)
+  const [month, setMonth] = useState(initialMonth)
+  const [selected, setSelected] = useState(null)
+  const [year, monthNumber] = month.split('-').map(Number)
+  const firstDay = new Date(year, monthNumber - 1, 1)
+  const lastDay = new Date(year, monthNumber, 0)
+  const cells = Array.from({ length: Math.ceil((firstDay.getDay() + lastDay.getDate()) / 7) * 7 }, (_, index) => {
+    const day = index - firstDay.getDay() + 1
+    return day > 0 && day <= lastDay.getDate() ? day : null
+  })
+  const eventsForDay = (day) => {
+    const value = `${month}-${String(day).padStart(2, '0')}`
+    return data.events.filter((event) => event.start_date <= value && (event.end_date || event.start_date) >= value)
+  }
+  const moveMonth = (offset) => setMonth(offsetMonth(month, offset))
+
+  useEffect(() => {
+    setSelected(null)
+  }, [month])
+
+  return (
+    <>
+      <section className="festival-hero">
+        <div><p className="eyebrow">BUSAN · FESTIVAL</p><h1>부산 축제 캘린더</h1><p>부산 곳곳의 축제 일정을 월별로 한눈에 확인하세요.</p></div>
+        <CalendarDays size={74} strokeWidth={1.2} aria-hidden="true" />
+      </section>
+      <section className="festival-layout">
+        <div className="festival-calendar-card">
+          <div className="festival-calendar-head">
+            <button type="button" onClick={() => moveMonth(-1)} aria-label="이전 달"><ChevronLeft /></button>
+            <h2>{year}년 {monthNumber}월</h2>
+            <div><button type="button" className="today-button" onClick={() => setMonth(today.toISOString().slice(0, 7))}>오늘</button><button type="button" onClick={() => moveMonth(1)} aria-label="다음 달"><ChevronRight /></button></div>
+          </div>
+          <div className="festival-weekdays">{['일', '월', '화', '수', '목', '금', '토'].map((day) => <span key={day}>{day}</span>)}</div>
+          <div className="festival-grid">
+            {cells.map((day, index) => {
+              const dayEvents = day ? eventsForDay(day) : []
+              const isToday = day && month === today.toISOString().slice(0, 7) && day === today.getDate()
+              return <div className={`festival-day ${day ? '' : 'empty'} ${isToday ? 'today' : ''}`} key={`${month}-${index}`}><span className="day-number">{day}</span>{dayEvents.slice(0, 3).map((event) => <button type="button" key={event.id} title={event.title} onClick={() => setSelected(event)}>{event.title}</button>)}{dayEvents.length > 3 && <small>+{dayEvents.length - 3}개 더보기</small>}</div>
+            })}
+          </div>
+        </div>
+        <aside className="festival-detail">
+          {selected ? <>
+            {selected.image && <img src={selected.image} alt="" />}
+            <p className="section-kicker">{selected.district || '부산광역시'}</p>
+            <h2>{selected.title}</h2>
+            <p className="festival-period">{selected.period_text || `${selected.start_date} — ${selected.end_date}`}</p>
+            {selected.place && <p><MapPin size={15} /> {selected.place}</p>}
+            {selected.address && <p>{selected.address}</p>}
+            {selected.description && <p className="festival-description">{selected.description}</p>}
+            {selected.homepage && <a href={selected.homepage} target="_blank" rel="noreferrer">공식 홈페이지 <ExternalLink size={14} /></a>}
+          </> : <div className="festival-empty"><CalendarDays size={34} /><b>축제를 선택해 보세요</b><span>달력의 일정에서 상세 정보를 확인할 수 있습니다.</span></div>}
+        </aside>
+      </section>
+      {data.undated.length > 0 && <p className="festival-notice">운영기간이 날짜 형식으로 제공되지 않은 축제 {data.undated.length}건은 달력에서 제외했습니다.</p>}
+      <footer className="dashboard-footer"><span>자료: {data.source}</span><span>공공데이터 수정일 {data.source_updated}</span></footer>
+    </>
+  )
+}
+
+function FoodMap({ restaurants, onSelect }) {
+  const containerRef = useRef(null)
+
+  useEffect(() => {
+    if (!containerRef.current) return undefined
+    const busanBounds = L.latLngBounds([34.85, 128.75], [35.4, 129.35])
+    const map = L.map(containerRef.current, {
+      scrollWheelZoom: true,
+      minZoom: 10,
+      maxBounds: busanBounds,
+      maxBoundsViscosity: 1,
+    })
+    map.fitBounds(busanBounds)
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(map)
+    const bounds = []
+    restaurants.forEach((restaurant) => {
+      const lat = Number(restaurant.lat)
+      const lng = Number(restaurant.lng)
+      if (!Number.isFinite(lat) || !Number.isFinite(lng) || !busanBounds.contains([lat, lng])) return
+      bounds.push([lat, lng])
+      const tooltip = document.createElement('div')
+      tooltip.className = 'food-map-tooltip'
+      if (restaurant.thumbnail) {
+        const image = document.createElement('img')
+        image.src = restaurant.thumbnail
+        image.alt = ''
+        tooltip.appendChild(image)
+      }
+      const copy = document.createElement('div')
+      const district = document.createElement('span')
+      district.textContent = restaurant.district
+      const name = document.createElement('b')
+      name.textContent = restaurant.name
+      const menu = document.createElement('small')
+      menu.textContent = restaurant.menu || restaurant.address || '상세정보 보기'
+      copy.append(district, name, menu)
+      tooltip.appendChild(copy)
+      const marker = L.circleMarker([lat, lng], {
+        radius: 6,
+        color: '#fff8e9',
+        weight: 2,
+        fillColor: '#c66f27',
+        fillOpacity: .9,
+      }).addTo(map).bindTooltip(tooltip, { direction: 'top', offset: [0, -7], opacity: 1 })
+      marker.on('click', () => {
+        marker.closeTooltip()
+        onSelect(restaurant)
+      })
+    })
+    if (bounds.length) map.fitBounds(bounds, { padding: [30, 30], maxZoom: 12 })
+    setTimeout(() => map.invalidateSize(), 0)
+    return () => map.remove()
+  }, [restaurants, onSelect])
+
+  return <div ref={containerRef} className="food-map" aria-label="부산 맛집 지도" />
+}
+
+function RestaurantExplorer() {
+  const [data, setData] = useState(null)
+  const [query, setQuery] = useState('')
+  const [district, setDistrict] = useState('')
+  const [page, setPage] = useState(1)
+  const [selected, setSelected] = useState(null)
+  const [view, setView] = useState('list')
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    const controller = new AbortController()
+    const timer = setTimeout(async () => {
+      try {
+        setError('')
+        const params = new URLSearchParams({ q: query, district, page: String(page), page_size: view === 'map' ? '500' : '24' })
+        const response = await fetch(`/api/restaurants?${params}`, { signal: controller.signal })
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}))
+          throw new Error(body.detail || '맛집 정보를 불러오지 못했습니다.')
+        }
+        setData(await response.json())
+      } catch (loadError) {
+        if (loadError.name !== 'AbortError') setError(loadError.message)
+      }
+    }, 250)
+    return () => { clearTimeout(timer); controller.abort() }
+  }, [query, district, page, view])
+
+  const totalPages = data ? Math.max(1, Math.ceil(data.total_count / data.page_size)) : 1
+  return <>
+    <section className="food-hero">
+      <div><p className="eyebrow">TASTE OF BUSAN</p><h1>부산의 한 끼를 찾다</h1><p>동네와 메뉴로 부산의 맛집을 가볍게 탐색해 보세요.</p></div>
+      <Utensils size={72} strokeWidth={1.15} aria-hidden="true" />
+    </section>
+    <section className="food-toolbar" aria-label="맛집 검색 조건">
+      <label><Search size={17} /><input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1) }} placeholder="맛집, 메뉴, 주소 검색" /></label>
+      <select value={district} onChange={(event) => { setDistrict(event.target.value); setPage(1) }} aria-label="구군 선택"><option value="">부산 전체</option>{data?.districts.map((name) => <option key={name}>{name}</option>)}</select>
+      <span>{data ? `${numberFormat.format(data.total_count)}곳` : '불러오는 중'}</span>
+      <div className="food-view-switch" aria-label="보기 방식"><button type="button" className={view === 'list' ? 'active' : ''} onClick={() => { setView('list'); setPage(1) }}><LayoutGrid /> 목록</button><button type="button" className={view === 'map' ? 'active' : ''} onClick={() => { setView('map'); setPage(1) }}><MapIcon /> 지도</button></div>
+    </section>
+    {error && <div className="error-message" role="alert"><strong>맛집 정보를 불러오지 못했습니다.</strong><span>{error}</span></div>}
+    {!data && !error && <div className="state-message"><RefreshCw className="spin" size={18} /> 부산 맛집을 찾는 중입니다.</div>}
+    {data && <>
+      {data.restaurants.length && view === 'map' && <FoodMap restaurants={data.restaurants} onSelect={setSelected} />}
+      {data.restaurants.length && view === 'list' && <section className="food-grid">
+        {data.restaurants.map((restaurant) => <button className="food-card" type="button" key={restaurant.id} onClick={() => setSelected(restaurant)}>
+          <div className="food-image">{restaurant.thumbnail ? <img src={restaurant.thumbnail} alt="" loading="lazy" /> : <Utensils size={28} />}</div>
+          <div className="food-card-body"><span>{restaurant.district}</span><h2>{restaurant.name}</h2><p>{restaurant.menu || restaurant.title || '대표 메뉴 정보 없음'}</p><small><MapPin size={12} />{restaurant.address || '주소 정보 없음'}</small></div>
+        </button>)}
+      </section>}
+      {!data.restaurants.length && <div className="food-no-result"><Search size={30} /><b>검색 결과가 없습니다</b><span>다른 지역이나 메뉴로 찾아보세요.</span></div>}
+      {view === 'list' && <nav className="food-pagination" aria-label="맛집 목록 페이지"><button type="button" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}><ChevronLeft /> 이전</button><span>{page} / {totalPages}</span><button type="button" disabled={page >= totalPages} onClick={() => setPage((value) => value + 1)}>다음 <ChevronRight /></button></nav>}
+      <footer className="dashboard-footer"><span>자료: {data.source}</span><span>공공데이터포털 실시간 연동</span></footer>
+    </>}
+    {selected && <div className="food-modal-backdrop" role="presentation" onMouseDown={() => setSelected(null)}><article className="food-modal" role="dialog" aria-modal="true" aria-label={`${selected.name} 상세정보`} onMouseDown={(event) => event.stopPropagation()}>
+      <button className="food-modal-close" type="button" onClick={() => setSelected(null)} aria-label="닫기">×</button>
+      {selected.image && <img src={selected.image} alt="" />}
+      <div className="food-modal-copy"><p className="section-kicker">{selected.district}</p><h2>{selected.name}</h2>{selected.subtitle && <strong>{selected.subtitle}</strong>}{selected.menu && <p className="food-menu"><Utensils size={15} /> {selected.menu}</p>}{selected.address && <p><MapPin size={15} /> {selected.address}</p>}{selected.hours && <p><Clock3 size={15} /> {selected.hours}</p>}{selected.contact && <p><Phone size={15} /> {selected.contact}</p>}{selected.description && <p className="food-description">{selected.description}</p>}{selected.homepage && <a href={selected.homepage} target="_blank" rel="noreferrer">홈페이지 보기 <ExternalLink size={14} /></a>}</div>
+    </article></div>}
+  </>
+}
+
 function App() {
   const [activeTab, setActiveTab] = useState('air')
   const [dashboard, setDashboard] = useState(null)
   const [cruise, setCruise] = useState(null)
+  const [festivals, setFestivals] = useState(null)
   const [airports, setAirports] = useState([])
   const [airportName, setAirportName] = useState('')
   const [airportSeries, setAirportSeries] = useState([])
@@ -160,6 +360,7 @@ function App() {
   const [error, setError] = useState('')
   const [airportError, setAirportError] = useState('')
   const [cruiseError, setCruiseError] = useState('')
+  const [festivalError, setFestivalError] = useState('')
   const [airStart, setAirStart] = useState('')
   const [airEnd, setAirEnd] = useState('')
   const [airCompare, setAirCompare] = useState(false)
@@ -228,6 +429,25 @@ function App() {
   }, [activeTab, cruise])
 
   useEffect(() => {
+    if (activeTab !== 'festival' || festivals) return undefined
+    const controller = new AbortController()
+    setFestivalError('')
+    fetch('/api/festivals', { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}))
+          throw new Error(body.detail || '축제 일정을 불러오지 못했습니다.')
+        }
+        return response.json()
+      })
+      .then(setFestivals)
+      .catch((loadError) => {
+        if (loadError.name !== 'AbortError') setFestivalError(loadError.message)
+      })
+    return () => controller.abort()
+  }, [activeTab, festivals])
+
+  useEffect(() => {
     if (!cruise) return
     const latestCurrentMonth = [...cruise.series].reverse().find((point) => point.status === '기록')?.month || cruise.period_end
     setCruiseStart((current) => current || recentYearStart(latestCurrentMonth, cruise.period_start))
@@ -283,14 +503,14 @@ function App() {
     <div className={`app-shell theme-${activeTab}`}>
       <header className="topbar">
         <a className="brand" href="#top" aria-label="부산 교통 수요 대시보드 홈">
-          <span className="brand-mark">{activeTab === 'air' ? <PlaneLanding size={18} strokeWidth={2.1} /> : <Ship size={18} strokeWidth={2.1} />}</span>
+          <span className="brand-mark">{activeTab === 'air' ? <PlaneLanding size={18} strokeWidth={2.1} /> : activeTab === 'cruise' ? <Ship size={18} strokeWidth={2.1} /> : activeTab === 'festival' ? <CalendarDays size={18} strokeWidth={2.1} /> : <Utensils size={18} strokeWidth={2.1} />}</span>
           <span className="brand-copy"><b>BUSAN</b><small>모빌리티 데이터</small></span>
         </a>
         <div className="topbar-meta">
           <span className="live-indicator" />
           <span>월간 데이터</span>
           <span className="topbar-divider" />
-          <span>{activeTab === 'air' ? (dashboard?.last_actual_month ? formatMonth(dashboard.last_actual_month) : '데이터 확인 중') : (cruise ? `${formatMonth(cruise.period_start)} — ${formatMonth(cruise.period_end)}` : '데이터 확인 중')}</span>
+          <span>{activeTab === 'air' ? (dashboard?.last_actual_month ? formatMonth(dashboard.last_actual_month) : '데이터 확인 중') : activeTab === 'cruise' ? (cruise ? `${formatMonth(cruise.period_start)} — ${formatMonth(cruise.period_end)}` : '데이터 확인 중') : activeTab === 'festival' ? '실시간 축제 정보' : '부산 맛집 정보'}</span>
         </div>
       </header>
 
@@ -301,6 +521,12 @@ function App() {
           </button>
           <button className={activeTab === 'cruise' ? 'active' : ''} onClick={() => setActiveTab('cruise')} type="button">
             <Ship size={16} /> 크루즈 입항
+          </button>
+          <button className={activeTab === 'festival' ? 'active' : ''} onClick={() => setActiveTab('festival')} type="button">
+            <CalendarDays size={16} /> 부산 축제
+          </button>
+          <button className={activeTab === 'food' ? 'active' : ''} onClick={() => setActiveTab('food')} type="button">
+            <Utensils size={16} /> 부산 맛집
           </button>
         </nav>
 
@@ -455,6 +681,14 @@ function App() {
           </>
         )}
         </>}
+
+        {activeTab === 'festival' && <>
+          {!festivals && !festivalError && <div className="state-message"><RefreshCw className="spin" size={18} /> 축제 일정을 불러오는 중입니다.</div>}
+          {festivalError && <div className="error-message" role="alert"><strong>축제 일정을 불러오지 못했습니다.</strong><span>{festivalError}</span></div>}
+          {festivals && <FestivalCalendar data={festivals} />}
+        </>}
+
+        {activeTab === 'food' && <RestaurantExplorer />}
 
         {activeTab === 'cruise' && (
           <>

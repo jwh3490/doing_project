@@ -10,6 +10,12 @@
 
 ## Windows 로컬 실행
 
+부산 축제 캘린더를 사용하려면 공공데이터포털의 `부산광역시_부산축제정보 서비스` 활용신청 후 프로젝트 루트에 `.env`를 만들고 인증키를 설정합니다. `.env.example`을 복사해 사용할 수 있으며 실제 키는 Git에 포함되지 않습니다.
+
+```dotenv
+DATA_GO_KR_SERVICE_KEY=발급받은_인증키
+```
+
 먼저 VS Code에서 새 PowerShell 터미널을 열고 프로젝트 루트 `C:\Users\jwh34\project`에서 실행합니다.
 
 ```powershell

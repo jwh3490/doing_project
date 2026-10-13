@@ -1,9 +1,15 @@
 import pandas as pd
 from fastapi import FastAPI, HTTPException, Query
+from dotenv import load_dotenv
 
 from .data import AirportData, load_data
 from .cruise import cruise_summary
 from .forecast import forecast_months
+from .festival import festival_calendar
+from .restaurant import restaurant_directory
+
+
+load_dotenv()
 
 
 app = FastAPI(title="김해공항 국제선 여객 분석 API")
@@ -25,6 +31,27 @@ def health() -> dict[str, str]:
 def cruise() -> dict:
     try:
         return cruise_summary()
+    except ValueError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+
+
+@app.get("/api/festivals")
+def festivals() -> dict:
+    try:
+        return festival_calendar()
+    except ValueError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+
+
+@app.get("/api/restaurants")
+def restaurants(
+    q: str = Query(default="", max_length=100),
+    district: str = Query(default="", max_length=30),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=24, ge=1, le=500),
+) -> dict:
+    try:
+        return restaurant_directory(query=q, district=district, page=page, page_size=page_size)
     except ValueError as error:
         raise HTTPException(status_code=503, detail=str(error)) from error
 
