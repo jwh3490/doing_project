@@ -330,23 +330,14 @@
   --coral: #ee7653;
   --amber: #f1b84c;
 }
-.theme-food {
-  --teal: #ab3d2b;
-  --coral: #df6b3c;
-  --amber: #dcae54;
-}
 .theme-air .topbar { background: rgba(10, 31, 61, .97); }
 .theme-air .brand-mark { color: #a8d4ff; border-color: rgba(137,195,255,.4); background: rgba(49,128,214,.22); }
 .theme-air .topbar .live-indicator { background: #62b5ff; box-shadow: 0 0 0 4px rgba(98,181,255,.14); }
 .theme-cruise .topbar { background: rgba(5, 47, 63, .97); }
 .theme-cruise .brand-mark { color: #87e5df; border-color: rgba(117,221,215,.4); background: rgba(0,143,155,.2); }
 .theme-cruise .topbar .live-indicator { background: #54d2c5; }
-.theme-food .topbar { background: rgba(55, 30, 25, .97); }
-.theme-food .brand-mark { color: #ffd9af; border-color: rgba(255,210,160,.35); background: rgba(173,73,46,.24); }
-.theme-food .topbar .live-indicator { background: #f0ad55; box-shadow: 0 0 0 4px rgba(240,173,85,.14); }
 .theme-air .data-tabs button.active { background: linear-gradient(135deg, #245fae, #258fdf); box-shadow: 0 5px 14px rgba(37,117,200,.25); }
 .theme-cruise .data-tabs button.active { background: linear-gradient(135deg, #006a7d, #009ca8); box-shadow: 0 5px 14px rgba(0,122,137,.25); }
-.theme-food .data-tabs button.active { background: linear-gradient(135deg, #873727, #c35636); box-shadow: 0 5px 14px rgba(143,56,37,.25); }
 .theme-air .busan-hero {
   background:
     radial-gradient(circle at 85% 20%, rgba(115,190,255,.2), transparent 30%),
@@ -389,45 +380,6 @@
   .airport-scene { right: -12%; width: 78%; opacity: .32; }
   .flight-path { right: 22px; }
   .hero-plane { right: 49px; }
-}
-
-/* Food: warm editorial guide */
-.theme-food.app-shell { background-color: #f7f1e8; background-image: radial-gradient(circle at 10% 4%, rgba(180,78,50,.09), transparent 25%), linear-gradient(rgba(113,67,43,.035) 1px, transparent 1px); }
-.theme-food .dashboard-main { width: min(1240px, calc(100% - 48px)); }
-.food-hero { position: relative; display: flex; align-items: center; justify-content: space-between; min-height: 270px; overflow: hidden; padding: 44px 50px; border-radius: 7px 7px 42px 7px; color: white; background: linear-gradient(120deg, #53291f, #8c3b29 58%, #c4673e); box-shadow: 0 24px 56px rgba(87,42,29,.2); }
-.food-hero::before { content: ''; position: absolute; right: 8%; bottom: -80px; width: 300px; height: 300px; border: 1px solid rgba(255,229,191,.18); border-radius: 50%; box-shadow: 0 0 0 28px rgba(255,229,191,.04), 0 0 0 58px rgba(255,229,191,.035); }
-.food-hero .eyebrow { color: #ffd294; }
-.food-hero h1 { margin: 0; font-size: clamp(34px, 4.3vw, 52px); letter-spacing: -.045em; }
-.food-hero p:last-child { margin: 13px 0 0; color: #f0d7c6; font-size: 14px; }
-.food-hero-mark { position: relative; z-index: 2; display: flex; align-items: center; gap: 18px; padding: 20px 25px; border: 1px solid rgba(255,222,178,.32); border-radius: 50%; color: #ffd498; background: rgba(58,23,18,.22); transform: rotate(-4deg); }
-.food-hero-mark span { padding-left: 17px; border-left: 1px solid rgba(255,222,178,.3); font: 600 16px/1.4 serif; letter-spacing: .18em; }
-.food-source-note { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin: 18px 0 27px; padding: 14px 17px; border-left: 4px solid #b54e32; color: #725b4e; background: rgba(255,255,255,.68); font-size: 11px; }
-.food-source-note > div { display: flex; gap: 12px; }.food-source-note strong { color: #542e25; }.food-source-note a { flex: 0 0 auto; color: #a5422d; font-weight: 650; text-decoration: none; }
-.food-toolbar { display: flex; align-items: flex-end; gap: 12px; margin-bottom: 18px; padding: 15px 17px; border: 1px solid #e2d3c4; border-radius: 8px; background: rgba(255,255,255,.77); }
-.food-toolbar label { display: grid; gap: 5px; }.food-toolbar label span { color: #8a7163; font-size: 9px; font-weight: 650; }
-.food-toolbar select { min-width: 150px; height: 36px; padding: 0 30px 0 10px; border: 1px solid #d9c4b1; border-radius: 5px; color: #5b4035; background: white; font-size: 11px; }
-.food-toolbar p { margin: 0 0 8px auto; color: #8a7265; font-size: 10px; }.food-toolbar p b { margin-right: 3px; color: #a33f2a; font: 700 16px var(--mono); }
-.food-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px; }
-.food-card { position: relative; display: flex; min-height: 260px; flex-direction: column; overflow: hidden; border: 1px solid #e0d2c4; border-radius: 8px 8px 22px 8px; background: rgba(255,255,255,.9); box-shadow: 0 9px 25px rgba(89,53,35,.06); transition: transform .2s ease, box-shadow .2s ease; }
-.food-card:hover { transform: translateY(-3px); box-shadow: 0 15px 34px rgba(89,53,35,.12); }
-.food-card-top { display: flex; justify-content: space-between; padding: 14px 17px 11px; border-bottom: 1px solid #eee2d7; color: #b4a092; font: 600 9px var(--mono); }
-.food-card-top em { color: #a45d43; font-style: normal; letter-spacing: .08em; }
-.food-card-body { flex: 1; padding: 20px 20px 18px; }.food-category { color: #b45c3e; font-size: 10px; font-weight: 700; }
-.food-card h2 { margin: 7px 0 12px; color: #472c24; font-size: 21px; }.food-card-body p { min-height: 38px; margin: 0; color: #7b6960; font-size: 11px; line-height: 1.7; }
-.food-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 9px; padding: 13px 17px; color: #7d6b62; background: #f7f1eb; font-size: 9px; }
-.food-card-foot > span { display: flex; align-items: center; gap: 5px; }.food-card-foot svg { color: #b35338; }
-.ribbon-rating { color: #bd442c; font: 700 9px var(--mono); letter-spacing: .06em; text-decoration: none; }.ribbon-rating small { margin-left: 4px; color: #8f6c5e; font-size: 7px; }
-.guide-badge { padding: 4px 7px; border: 1px solid #d8bba6; border-radius: 999px; color: #8d5b46; font-size: 8px; text-decoration: none; }
-.food-featured { border-color: #c96848; background: linear-gradient(150deg, #fffaf4, #fff); }.food-featured::after { content: '2026 THREE RIBBONS'; position: absolute; top: 52px; right: -34px; width: 145px; padding: 5px 0; color: white; background: #ad432d; transform: rotate(42deg); text-align: center; font: 600 7px var(--mono); letter-spacing: .08em; }
-.food-footer { color: #806c62; border-color: #d8c6b7; }
-
-@media (max-width: 900px) { .food-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 620px) {
-  .theme-food .dashboard-main { width: calc(100% - 30px); }
-  .food-hero { min-height: 285px; padding: 34px 25px 48px; }.food-hero-mark { position: absolute; right: -15px; bottom: 15px; opacity: .38; }
-  .food-source-note { align-items: flex-start; flex-direction: column; }.food-source-note > div { flex-direction: column; gap: 5px; }
-  .food-toolbar { align-items: stretch; flex-direction: column; }.food-toolbar select { width: 100%; }.food-toolbar p { margin: 4px 0 0; }
-  .food-grid { grid-template-columns: 1fr; }
 }
 
 /* Cruise: Busan port control room */

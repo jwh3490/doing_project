@@ -4,11 +4,9 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   CalendarDays,
-  MapPin,
   PlaneLanding,
   RefreshCw,
   Ship,
-  Utensils,
   Waypoints,
 } from 'lucide-react'
 import {
@@ -23,19 +21,9 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import bluerBusan from './data/bluerBusan.json'
 import './App.css'
 
 const numberFormat = new Intl.NumberFormat('ko-KR')
-
-const FOOD_SPOTS = bluerBusan.restaurants
-
-function ribbonLabel(spot) {
-  if (spot.ribbons > 0) return `${spot.ribbons} RIBBON${spot.ribbons > 1 ? 'S' : ''}`
-  if (spot.ribbonType === 'NEW') return 'NEW'
-  if (spot.ribbonType === 'ATTENTION') return '주목할 맛집'
-  return '통합검색 수록'
-}
 
 function formatCount(value) {
   return value == null ? '—' : numberFormat.format(Math.round(value))
@@ -162,7 +150,7 @@ function ChartTooltip({ active, payload, label, selectedMethod, comparePrevious 
 }
 
 function App() {
-  const [activeTab, setActiveTab] = useState(() => new URLSearchParams(window.location.search).get('tab') === 'busan-food' ? 'food' : 'air')
+  const [activeTab, setActiveTab] = useState('air')
   const [dashboard, setDashboard] = useState(null)
   const [cruise, setCruise] = useState(null)
   const [airports, setAirports] = useState([])
@@ -178,8 +166,6 @@ function App() {
   const [cruiseStart, setCruiseStart] = useState('')
   const [cruiseEnd, setCruiseEnd] = useState('')
   const [cruiseCompare, setCruiseCompare] = useState(false)
-  const [foodDistrict, setFoodDistrict] = useState('전체')
-  const [foodCategory, setFoodCategory] = useState('전체')
 
   useEffect(() => {
     const controller = new AbortController()
@@ -293,24 +279,18 @@ function App() {
     [['calls', 'previousCalls'], ['capacity', 'previousCapacity']],
   ), [cruise, cruiseStart, cruiseEnd])
   const selectedAirport = airports.find((airport) => airport.name === airportName)
-  const foodDistricts = ['전체', ...new Set(FOOD_SPOTS.map((spot) => spot.district))]
-  const foodCategories = ['전체', ...new Set(FOOD_SPOTS.map((spot) => spot.category))]
-  const filteredFoodSpots = FOOD_SPOTS.filter((spot) =>
-    (foodDistrict === '전체' || spot.district === foodDistrict)
-    && (foodCategory === '전체' || spot.category === foodCategory))
-
   return (
     <div className={`app-shell theme-${activeTab}`}>
       <header className="topbar">
         <a className="brand" href="#top" aria-label="부산 교통 수요 대시보드 홈">
-          <span className="brand-mark">{activeTab === 'air' ? <PlaneLanding size={18} strokeWidth={2.1} /> : activeTab === 'cruise' ? <Ship size={18} strokeWidth={2.1} /> : <Utensils size={18} strokeWidth={2.1} />}</span>
+          <span className="brand-mark">{activeTab === 'air' ? <PlaneLanding size={18} strokeWidth={2.1} /> : <Ship size={18} strokeWidth={2.1} />}</span>
           <span className="brand-copy"><b>BUSAN</b><small>모빌리티 데이터</small></span>
         </a>
         <div className="topbar-meta">
           <span className="live-indicator" />
-          <span>{activeTab === 'food' ? '미식 가이드' : '월간 데이터'}</span>
+          <span>월간 데이터</span>
           <span className="topbar-divider" />
-          <span>{activeTab === 'air' ? (dashboard?.last_actual_month ? formatMonth(dashboard.last_actual_month) : '데이터 확인 중') : activeTab === 'cruise' ? (cruise ? `${formatMonth(cruise.period_start)} — ${formatMonth(cruise.period_end)}` : '데이터 확인 중') : 'BLUE RIBBON · BUSAN'}</span>
+          <span>{activeTab === 'air' ? (dashboard?.last_actual_month ? formatMonth(dashboard.last_actual_month) : '데이터 확인 중') : (cruise ? `${formatMonth(cruise.period_start)} — ${formatMonth(cruise.period_end)}` : '데이터 확인 중')}</span>
         </div>
       </header>
 
@@ -321,9 +301,6 @@ function App() {
           </button>
           <button className={activeTab === 'cruise' ? 'active' : ''} onClick={() => setActiveTab('cruise')} type="button">
             <Ship size={16} /> 크루즈 입항
-          </button>
-          <button className={activeTab === 'food' ? 'active' : ''} onClick={() => setActiveTab('food')} type="button">
-            <Utensils size={16} /> 부산 맛집
           </button>
         </nav>
 
@@ -587,45 +564,6 @@ function App() {
           </>
         )}
 
-        {activeTab === 'food' && (
-          <>
-            <section className="food-hero">
-              <div>
-                <p className="eyebrow"><span>BLUE RIBBON · BUSAN</span><span>LOCAL TABLE</span></p>
-                <h1>부산의 미식을 찾는<br />공식 검색 결과</h1>
-                <p>블루리본서베이 통합검색에서 부산 지역으로 확인된 최근 업데이트 식당입니다.</p>
-              </div>
-              <div className="food-hero-mark" aria-hidden="true"><Utensils size={52} /><span>釜山<br />味食</span></div>
-            </section>
-
-            <aside className="food-source-note">
-              <div><strong>데이터 기준</strong><span>블루리본서베이 공식 통합검색 · 지역 ‘부산’ · {bluerBusan.resultOrder} {bluerBusan.shownCount}곳</span></div>
-              <a href={bluerBusan.sourceUrl} target="_blank" rel="noreferrer">공식 부산 검색 열기 ↗</a>
-            </aside>
-
-            <section className="food-toolbar" aria-label="맛집 필터">
-              <label><span>지역</span><select value={foodDistrict} onChange={(event) => setFoodDistrict(event.target.value)}>{foodDistricts.map((district) => <option key={district}>{district}</option>)}</select></label>
-              <label><span>음식 종류</span><select value={foodCategory} onChange={(event) => setFoodCategory(event.target.value)}>{foodCategories.map((category) => <option key={category}>{category}</option>)}</select></label>
-              <p><b>{filteredFoodSpots.length}</b>곳을 보여드립니다</p>
-            </section>
-
-            <section className="food-grid" aria-label="부산 맛집 목록">
-              {filteredFoodSpots.map((spot, index) => (
-                <article className={`food-card ${spot.ribbons >= 2 ? 'food-featured' : ''}`} key={spot.id}>
-                  <div className="food-card-top"><span>{String(index + 1).padStart(2, '0')}</span><em>{spot.edition ? `${spot.edition} GUIDE` : 'BLUE RIBBON SEARCH'}</em></div>
-                  <div className="food-card-body">
-                    <div className="food-category">{spot.category || '음식점'}</div>
-                    <h2>{spot.name}</h2>
-                    <p>{spot.address}</p>
-                  </div>
-                  <div className="food-card-foot"><span><MapPin size={13} /> 부산 {spot.district}</span>{spot.ribbons > 0 ? <a className="ribbon-rating" href={spot.detailUrl} target="_blank" rel="noreferrer">{'◆ '.repeat(spot.ribbons)}<small>{ribbonLabel(spot)} ↗</small></a> : <a className="guide-badge" href={spot.detailUrl} target="_blank" rel="noreferrer">{ribbonLabel(spot)} ↗</a>}</div>
-                </article>
-              ))}
-            </section>
-
-            <footer className="dashboard-footer food-footer"><span>자료: 블루리본서베이 공식 통합검색 · {bluerBusan.retrievedAt} 확인 · 전체 {numberFormat.format(bluerBusan.totalCount)}건 중 최근 {bluerBusan.shownCount}건</span><span>각 카드에서 공식 상세 페이지를 확인할 수 있습니다.</span></footer>
-          </>
-        )}
       </main>
     </div>
   )
