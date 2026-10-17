@@ -73,14 +73,58 @@ def cruise_summary(today: date | None = None) -> dict:
 
     series = []
     for month, month_records in sorted(months.items()):
+        calls = len(month_records)
+        capacity = sum(record.capacity for record in month_records)
         series.append(
             {
                 "month": month,
-                "calls": len(month_records),
-                "capacity": sum(record.capacity for record in month_records),
+                "calls": calls,
+                "capacity": capacity,
                 "status": "예정" if month > current_month else "기록",
+                "recorded_calls": calls,
+                "recorded_capacity": capacity,
+                "estimated_calls": None,
+                "estimated_capacity": None,
             }
         )
+
+    data_period_end = series[-1]["month"]
+    data_end_year, data_end_month = (int(part) for part in data_period_end.split("-"))
+    estimate_series = []
+    for offset in range(1, 13):
+        month_index = data_end_month - 1 + offset
+        target_year = data_end_year + month_index // 12
+        target_month = month_index % 12 + 1
+        target = f"{target_year:04d}-{target_month:02d}"
+        reference_months = sorted(
+            month for month in months if int(month[5:7]) == target_month
+        )
+        monthly_calls = [len(months[month]) for month in reference_months]
+        monthly_capacities = [
+            sum(record.capacity for record in months[month])
+            for month in reference_months
+        ]
+        calls = int(round(sum(monthly_calls) / len(monthly_calls))) if monthly_calls else 0
+        capacity = (
+            int(round(sum(monthly_capacities) / len(monthly_capacities)))
+            if monthly_capacities
+            else 0
+        )
+        estimate_series.append(
+            {
+                "month": target,
+                "calls": calls,
+                "capacity": capacity,
+                "status": "추정",
+                "estimate_basis": f"{reference_months[0]}~{reference_months[-1]} 동월 평균",
+                "recorded_calls": None,
+                "recorded_capacity": None,
+                "estimated_calls": calls,
+                "estimated_capacity": capacity,
+            }
+        )
+
+    series.extend(estimate_series)
 
     port_counts = Counter(record.port for record in records)
     terminal_counts = Counter(record.terminal for record in records)
@@ -88,6 +132,11 @@ def cruise_summary(today: date | None = None) -> dict:
         "source_file": CRUISE_DATA_PATH.name,
         "period_start": series[0]["month"],
         "period_end": series[-1]["month"],
+        "data_period_end": data_period_end,
+        "estimate_start": estimate_series[0]["month"],
+        "estimate_end": estimate_series[-1]["month"],
+        "estimated_calls": sum(point["calls"] for point in estimate_series),
+        "estimated_capacity": sum(point["capacity"] for point in estimate_series),
         "total_calls": len(records),
         "total_capacity": sum(record.capacity for record in records),
         "scheduled_calls": sum(1 for record in records if record.month > current_month),
