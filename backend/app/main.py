@@ -7,6 +7,7 @@ from .cruise import cruise_summary
 from .forecast import forecast_months
 from .festival import festival_calendar
 from .restaurant import restaurant_directory
+from .tourism import tourism_summary
 
 
 load_dotenv()
@@ -25,6 +26,14 @@ def _load_or_error() -> AirportData:
 @app.get("/api/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/api/tourism")
+def tourism() -> dict:
+    try:
+        return tourism_summary()
+    except (OSError, ValueError) as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
 
 
 @app.get("/api/cruise")

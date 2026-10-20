@@ -171,6 +171,51 @@
 .spin { animation: spin 1.2s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* Foreign tourist trends */
+.theme-tourism { --teal: #287d78; --coral: #d97945; background: #f7f8f3; }
+.tourism-hero { display: flex; align-items: center; justify-content: space-between; min-height: 190px; margin-bottom: 18px; padding: 34px 42px; overflow: hidden; border-radius: 12px 32px 12px 12px; color: #effcf8; background: radial-gradient(circle at 86% 18%, rgba(255,215,146,.26), transparent 25%), linear-gradient(120deg, #143f46, #287d78 65%, #71aa8e); box-shadow: 0 20px 44px rgba(28,83,78,.16); }
+.tourism-hero h1 { margin: 4px 0 9px; font-size: clamp(32px, 5vw, 49px); }
+.tourism-hero p { margin: 0; color: #d1e9e3; }
+.tourism-hero .eyebrow { color: #f7cc85; }
+.tourism-assumption { display: flex; align-items: center; gap: 11px; padding: 12px 15px; border-left: 3px solid #d99a50; color: #5c635d; background: #f4efe3; font-size: 12px; }
+.tourism-assumption p { margin: 0; }
+.tourism-metrics { margin-top: 20px; }
+.tourism-change { background: #e8a15f; opacity: .7; }
+.tourism-change-dot { background: #e8a15f; }
+.tourism-period-controls { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 9px; margin: 18px 0 4px; padding: 13px 14px; border: 1px solid #cfe0dd; border-radius: 8px; background: rgba(239,247,244,.82); }
+.tourism-period-controls > button { height: 35px; padding: 0 12px; border: 1px solid #b9cfca; border-radius: 6px; color: #376b65; background: #fff; cursor: pointer; font-size: 10px; font-weight: 650; }
+.tourism-period-controls > button:hover { color: #fff; border-color: var(--teal); background: var(--teal); }
+.tourism-period-controls > b { align-self: center; margin-left: auto; color: #66807a; font: 600 10px var(--mono); }
+.tourism-insights { display: grid; grid-template-columns: 1.25fr 1fr; gap: 22px; padding: 28px 0; border-top: 1px solid var(--line-strong); }
+.tourism-route-card, .tourism-spike-card { min-width: 0; padding: 23px; border: 1px solid var(--line); border-radius: 9px; background: rgba(255,255,255,.75); }
+.route-content { display: grid; grid-template-columns: 210px 1fr; align-items: center; gap: 18px; margin-top: 12px; }
+.route-pie { position: relative; height: 210px; }
+.route-pie > span { position: absolute; inset: 0; display: grid; place-content: center; pointer-events: none; text-align: center; }
+.route-pie > span b { color: var(--ink); font: 650 19px var(--mono); }
+.route-pie > span small { margin-top: 3px; color: var(--muted); font-size: 9px; }
+.route-list { display: grid; gap: 11px; }
+.route-list > div { display: grid; grid-template-columns: 9px 1fr auto; align-items: center; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.route-list i { width: 8px; height: 8px; border-radius: 50%; }
+.route-list span { color: #4e5b56; font-size: 11px; }
+.route-list b { color: var(--ink); font: 650 14px var(--mono); }
+.route-list small { grid-column: 2 / 4; color: #89928d; font: 9px var(--mono); }
+.spike-explainer { margin: 10px 0 16px; color: var(--muted); font-size: 10px; }
+.spike-list { border-top: 1px solid var(--line); }
+.spike-list > div { display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 9px; min-height: 43px; border-bottom: 1px solid var(--line); }
+.spike-list span { color: #a0aaa5; font: 9px var(--mono); }
+.spike-list b { color: #45544e; font: 600 11px var(--mono); }
+.spike-list em { color: #c56638; font: normal 700 12px var(--mono); }
+.spike-list small { grid-column: 2 / 4; margin-top: -13px; color: #8b938f; font: 9px var(--mono); }
+
+@media (max-width: 760px) {
+  .tourism-hero { min-height: 170px; padding: 28px 25px; }
+  .tourism-hero svg { display: none; }
+  .tourism-insights { grid-template-columns: 1fr; }
+  .tourism-period-controls > b { flex-basis: 100%; margin-left: 0; }
+  .route-content { grid-template-columns: 1fr; }
+  .route-pie { height: 220px; }
+}
+
 .dashboard-footer { justify-content: space-between; gap: 16px; padding-top: 16px; border-top: 1px solid var(--line-strong); color: #7c8580; font-size: 10px; }
 .dashboard-footer > span:last-child { display: flex; align-items: center; gap: 7px; }
 .footer-dot { width: 6px; height: 6px; background: var(--amber); }

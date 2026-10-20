@@ -28,6 +28,9 @@ import {
   ComposedChart,
   Line,
   LineChart,
+  Pie,
+  PieChart,
+  Cell,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -575,6 +578,77 @@ function DemandCalendar({ dashboard, cruise, festivals, festivalError }) {
   </>
 }
 
+const ROUTE_COLORS = ['#287d78', '#e98a4b', '#7895c9']
+
+function TourismTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null
+  const point = payload[0].payload
+  return <div className="chart-tooltip"><strong>{formatMonth(label)}</strong><div className="tooltip-row"><span className="tooltip-dot tooltip-actual" /><span>외국인 관광객</span><b>{formatCount(point.visitors)}명</b></div><div className="tooltip-row"><span className="tooltip-dot tourism-change-dot" /><span>전월 대비</span><b>{formatPercent(point.change_rate)}</b></div></div>
+}
+
+function TourismDashboard() {
+  const [data, setData] = useState(null)
+  const [error, setError] = useState('')
+  const [startMonth, setStartMonth] = useState('')
+  const [endMonth, setEndMonth] = useState('')
+
+  useEffect(() => {
+    const controller = new AbortController()
+    fetch('/api/tourism', { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}))
+          throw new Error(body.detail || '외국인 관광객 자료를 불러오지 못했습니다.')
+        }
+        return response.json()
+      })
+      .then((tourismData) => {
+        setData(tourismData)
+        setStartMonth(tourismData.period_start)
+        setEndMonth(tourismData.period_end)
+      })
+      .catch((loadError) => { if (loadError.name !== 'AbortError') setError(loadError.message) })
+    return () => controller.abort()
+  }, [])
+
+  if (error) return <div className="error-message" role="alert"><strong>관광객 자료를 불러오지 못했습니다.</strong><span>{error}</span></div>
+  if (!data) return <div className="state-message"><RefreshCw className="spin" size={18} /> 외국인 관광객 동향을 집계하는 중입니다.</div>
+
+  const visibleSeries = data.series.filter((point) => point.month >= startMonth && point.month <= endMonth)
+
+  return <>
+    <section className="tourism-hero">
+      <div><p className="eyebrow">BUSAN · FOREIGN VISITORS</p><h1>외국인 관광객 동향</h1><p>부산 방문 외국인 관광객의 월별 흐름과 방문경로 변화를 살펴봅니다.</p></div>
+      <Activity size={72} strokeWidth={1.2} aria-hidden="true" />
+    </section>
+    <div className="tourism-assumption"><span className="note-mark">i</span><p>{data.assumption}</p></div>
+    <section className="metrics-grid tourism-metrics" aria-label="외국인 관광객 핵심 지표">
+      <article className="metric-block"><div className="metric-label"><span>전체 누적 방문객</span></div><div className="metric-value">{formatCount(data.total_visitors)}<small>명</small></div><div className="metric-foot">{formatMonth(data.period_start)} — {formatMonth(data.period_end)}</div></article>
+      <article className="metric-block"><div className="metric-label"><span>최근 월 방문객</span></div><div className="metric-value">{formatCount(data.latest_visitors)}<small>명</small></div><div className="metric-foot">{formatMonth(data.period_end)} 기준</div></article>
+      <article className="metric-block"><div className="metric-label"><span>최근 월 증감률</span></div><div className={`metric-value ${data.latest_change_rate >= 0 ? 'positive' : 'negative'}`}>{formatPercent(data.latest_change_rate)}</div><div className="metric-foot">직전 월 대비</div></article>
+    </section>
+    <section className="section-block tourism-chart-panel">
+      <div className="section-heading"><div><p className="section-kicker">MONTHLY TREND</p><h2>월별 방문객 및 증감률</h2></div><span className="method-chip"><span className="method-dot" />전월 대비 증감률</span></div>
+      <div className="tourism-period-controls" aria-label="관광객 그래프 조회 기간">
+        <MonthPicker label="시작월" value={startMonth} min={data.period_start} max={endMonth || data.period_end} onChange={setStartMonth} />
+        <span className="range-arrow">→</span>
+        <MonthPicker label="종료월" value={endMonth} min={startMonth || data.period_start} max={data.period_end} onChange={setEndMonth} />
+        <button type="button" onClick={() => { setStartMonth(recentYearStart(data.period_end, data.period_start)); setEndMonth(data.period_end) }}>최근 12개월</button>
+        <button type="button" onClick={() => { setStartMonth(data.period_start); setEndMonth(data.period_end) }}>전체 기간</button>
+        <b>{visibleSeries.length}개월 조회</b>
+      </div>
+      <div className="chart-legend"><span><i className="legend-line actual-line" />방문객 수</span><span><i className="legend-block tourism-change" />월별 증감률</span></div>
+      <div className="chart-frame main-chart"><ResponsiveContainer width="100%" height="100%"><ComposedChart data={visibleSeries} margin={{ top: 14, right: 8, left: 0, bottom: 4 }}><CartesianGrid stroke="#dce2dd" strokeDasharray="2 5" vertical={false} /><XAxis dataKey="month" tickFormatter={formatMonth} minTickGap={30} axisLine={false} tickLine={false} /><YAxis yAxisId="visitors" tickFormatter={(value) => `${Math.round(value / 10000)}만`} axisLine={false} tickLine={false} width={42} /><YAxis yAxisId="rate" orientation="right" tickFormatter={(value) => `${value}%`} axisLine={false} tickLine={false} width={42} /><Tooltip content={<TourismTooltip />} /><Bar yAxisId="rate" dataKey="change_rate" fill="#e8a15f" opacity={0.48} radius={[3, 3, 0, 0]} /><Line yAxisId="visitors" dataKey="visitors" type="monotone" stroke="#287d78" strokeWidth={2.4} dot={false} activeDot={{ r: 4 }} /></ComposedChart></ResponsiveContainer></div>
+      <div className="chart-caption"><span>막대는 직전 월 대비 증감률, 선은 월별 관광객 수입니다.</span><span className="unit-label">단위: 명, %</span></div>
+    </section>
+    <section className="tourism-insights">
+      <article className="tourism-route-card"><div className="section-heading"><div><p className="section-kicker">ENTRY ROUTE</p><h2>방문경로별 비율</h2></div></div><div className="route-content"><div className="route-pie"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={data.routes} dataKey="count" nameKey="route" innerRadius={54} outerRadius={86} paddingAngle={2}>{data.routes.map((route, index) => <Cell key={route.route} fill={ROUTE_COLORS[index]} />)}</Pie><Tooltip formatter={(value, name, item) => [`${formatCount(value)}명 (${item.payload.ratio}%)`, name]} /></PieChart></ResponsiveContainer><span><b>100%</b><small>방문경로</small></span></div><div className="route-list">{data.routes.map((route, index) => <div key={route.route}><i style={{ background: ROUTE_COLORS[index] }} /><span>{route.route}</span><b>{route.ratio}%</b><small>{formatCount(route.count)}명</small></div>)}</div></div></article>
+      <article className="tourism-spike-card"><div className="section-heading"><div><p className="section-kicker">SURGE MONTHS</p><h2>급등한 기간</h2></div></div><p className="spike-explainer">전월 대비 증가율이 가장 높았던 상위 5개 월입니다.</p><div className="spike-list">{data.spikes.map((point, index) => <div key={point.month}><span>{String(index + 1).padStart(2, '0')}</span><b>{formatMonth(point.month)}</b><em>+{point.change_rate.toFixed(1)}%</em><small>{formatCount(point.visitors)}명</small></div>)}</div></article>
+    </section>
+    <footer className="dashboard-footer"><span>자료: {data.source}</span><span><span className="footer-dot" />방문경로 비율은 전체 기간 합산 기준입니다.</span></footer>
+  </>
+}
+
 function App() {
   const [activeTab, setActiveTab] = useState('air')
   const [dashboard, setDashboard] = useState(null)
@@ -730,14 +804,14 @@ function App() {
     <div className={`app-shell theme-${activeTab}`}>
       <header className="topbar">
         <a className="brand" href="#top" aria-label="부산 교통 수요 대시보드 홈">
-          <span className="brand-mark">{activeTab === 'air' ? <PlaneLanding size={18} strokeWidth={2.1} /> : activeTab === 'cruise' ? <Ship size={18} strokeWidth={2.1} /> : ['festival', 'demand'].includes(activeTab) ? <CalendarDays size={18} strokeWidth={2.1} /> : activeTab === 'planner' ? <Waypoints size={18} strokeWidth={2.1} /> : <Utensils size={18} strokeWidth={2.1} />}</span>
+          <span className="brand-mark">{activeTab === 'air' ? <PlaneLanding size={18} strokeWidth={2.1} /> : activeTab === 'tourism' ? <Activity size={18} strokeWidth={2.1} /> : activeTab === 'cruise' ? <Ship size={18} strokeWidth={2.1} /> : ['festival', 'demand'].includes(activeTab) ? <CalendarDays size={18} strokeWidth={2.1} /> : activeTab === 'planner' ? <Waypoints size={18} strokeWidth={2.1} /> : <Utensils size={18} strokeWidth={2.1} />}</span>
           <span className="brand-copy"><b>BUSAN</b><small>모빌리티 데이터</small></span>
         </a>
         <div className="topbar-meta">
           <span className="live-indicator" />
           <span>월간 데이터</span>
           <span className="topbar-divider" />
-          <span>{activeTab === 'air' ? (dashboard?.last_actual_month ? formatMonth(dashboard.last_actual_month) : '데이터 확인 중') : activeTab === 'cruise' ? (cruise ? `${formatMonth(cruise.period_start)} — ${formatMonth(cruise.period_end)}` : '데이터 확인 중') : activeTab === 'festival' ? '실시간 축제 정보' : activeTab === 'demand' ? '현재부터 6개월 추정' : activeTab === 'planner' ? '데이터 기반 모의 일정' : '부산 맛집 정보'}</span>
+          <span>{activeTab === 'air' ? (dashboard?.last_actual_month ? formatMonth(dashboard.last_actual_month) : '데이터 확인 중') : activeTab === 'tourism' ? '2021 — 2026 월별 동향' : activeTab === 'cruise' ? (cruise ? `${formatMonth(cruise.period_start)} — ${formatMonth(cruise.period_end)}` : '데이터 확인 중') : activeTab === 'festival' ? '실시간 축제 정보' : activeTab === 'demand' ? '현재부터 6개월 추정' : activeTab === 'planner' ? '데이터 기반 모의 일정' : '부산 맛집 정보'}</span>
         </div>
       </header>
 
@@ -745,6 +819,9 @@ function App() {
         <nav className="data-tabs" aria-label="교통 데이터 선택">
           <button className={activeTab === 'air' ? 'active' : ''} onClick={() => setActiveTab('air')} type="button">
             <PlaneLanding size={16} /> 항공 여객
+          </button>
+          <button className={activeTab === 'tourism' ? 'active' : ''} onClick={() => setActiveTab('tourism')} type="button">
+            <Activity size={16} /> 외국인 관광객
           </button>
           <button className={activeTab === 'cruise' ? 'active' : ''} onClick={() => setActiveTab('cruise')} type="button">
             <Ship size={16} /> 크루즈 입항
@@ -762,6 +839,8 @@ function App() {
             <Utensils size={16} /> 부산 맛집
           </button>
         </nav>
+
+        {activeTab === 'tourism' && <TourismDashboard />}
 
         {activeTab === 'air' && <>
         <section className="intro-row busan-hero">
