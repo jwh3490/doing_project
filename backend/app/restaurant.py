@@ -24,11 +24,14 @@ def _load_restaurants(service_key: str) -> tuple[dict, ...]:
     payload = _fetch_json(f"{FOOD_API_URL}?{query}")
     response = payload.get("getFoodKr", payload.get("response", payload))
     header = response.get("header", {})
-    if str(header.get("resultCode", "00")) != "00":
-        raise ValueError(header.get("resultMsg") or "부산 맛집 API가 오류를 반환했습니다.")
+    result_code = header.get("resultCode", header.get("code", "00"))
+    if str(result_code) != "00":
+        raise ValueError(header.get("resultMsg") or header.get("message") or "부산 맛집 API가 오류를 반환했습니다.")
 
     body = response.get("body", response)
-    container = body.get("items", body.get("item", []))
+    # 부산 맛집 API는 운영 환경에 따라 item이 getFoodKr 바로 아래에
+    # 위치하거나 response.body.items 안에 위치하는 두 형식을 반환합니다.
+    container = body.get("items", body.get("item", response.get("item", [])))
     items = container.get("item", []) if isinstance(container, dict) else container
     if isinstance(items, dict):
         items = [items]

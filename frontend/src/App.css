@@ -314,10 +314,13 @@
 .theme-food { --teal: #ad5d22; background: #f5f0e6; }
 .theme-food .topbar { background: rgba(42,37,25,.97); }
 .theme-food .data-tabs button.active { background: linear-gradient(135deg, #80551f, #cf8533); box-shadow: 0 5px 14px rgba(128,85,31,.25); }
+.theme-route .data-tabs button.active { background: linear-gradient(135deg, #28736c, #55a28c); box-shadow: 0 5px 14px rgba(40,115,108,.25); }
 .food-hero { display: flex; min-height: 230px; align-items: center; justify-content: space-between; margin-bottom: 18px; padding: 42px 50px; border-radius: 30px 8px 30px 8px; color: #fffaf0; background: radial-gradient(circle at 78% 45%, rgba(255,223,148,.26), transparent 19%), linear-gradient(120deg, #322f20, #725027 58%, #c87d31); box-shadow: 0 22px 50px rgba(69,51,26,.17); }
 .food-hero h1 { margin: 5px 0 8px; font-family: Georgia, serif; font-size: clamp(34px, 5vw, 54px); font-weight: 500; }
 .food-hero p { margin: 0; color: #eadbc1; }
 .food-hero .eyebrow { color: #f2ba63; font: 700 10px var(--mono); letter-spacing: .18em; }
+.route-hero { background: radial-gradient(circle at 78% 40%, rgba(192,242,221,.2), transparent 20%), linear-gradient(120deg, #173f3b, #28736c 58%, #66a47e); }
+.route-hero .eyebrow { color: #bdeadd; }
 .food-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; padding: 13px; border: 1px solid #dfd5c3; border-radius: 10px; background: rgba(255,255,255,.86); box-shadow: 0 8px 25px rgba(66,52,30,.06); }
 .food-toolbar label { display: flex; flex: 1; align-items: center; gap: 9px; min-width: 180px; padding: 0 12px; color: #927659; }
 .food-toolbar input { width: 100%; padding: 9px 0; border: 0; outline: 0; color: #3e372c; background: transparent; font: inherit; }
@@ -327,16 +330,74 @@
 .food-view-switch button { display: inline-flex; align-items: center; gap: 4px; padding: 7px 9px; border: 0; border-radius: 5px; color: #826c51; background: transparent; cursor: pointer; font-size: 10px; }
 .food-view-switch button.active { color: #fff; background: #9b642b; box-shadow: 0 3px 8px rgba(93,57,22,.2); }
 .food-view-switch svg { width: 14px; height: 14px; }
-.food-map { width: 100%; height: min(680px, 72vh); min-height: 470px; overflow: hidden; border: 1px solid #d9cbb5; border-radius: 11px; box-shadow: 0 13px 34px rgba(66,48,25,.1); }
-.food-map .leaflet-tile-pane { filter: sepia(.12) saturate(.78) contrast(.96); }
-.food-map .leaflet-tooltip { padding: 0; overflow: hidden; border: 0; border-radius: 8px; background: #fffaf1; box-shadow: 0 10px 28px rgba(38,29,19,.24); }
-.food-map .leaflet-tooltip-top::before { border-top-color: #fffaf1; }
-.food-map-tooltip { display: grid; width: 240px; grid-template-columns: 86px 1fr; }
-.food-map-tooltip img { width: 86px; height: 82px; object-fit: cover; }
+.food-route-planner { display: grid; gap: 12px; margin-bottom: 14px; padding: 16px; border: 1px solid #d9cbb5; border-radius: 10px; background: #fffaf1; box-shadow: 0 8px 22px rgba(66,48,25,.06); }
+.food-route-title { display: flex; align-self: center; align-items: center; gap: 9px; color: #8c5726; }
+.food-route-title > div { display: grid; gap: 3px; }
+.food-route-title strong { color: #493827; font-size: 13px; }
+.food-route-title span { color: #8b7a67; font-size: 9px; line-height: 1.4; }
+.food-route-places { display: grid; grid-template-columns: minmax(0, 1fr) 36px minmax(0, 1fr); align-items: start; gap: 10px; }
+.food-route-origin { max-width: 720px; }
+.food-route-options { display: grid; grid-template-columns: repeat(2, minmax(180px, 1fr)) repeat(2, 130px); align-items: end; gap: 10px; }
+.food-route-planner label, .place-search-field { position: relative; display: grid; gap: 5px; }
+.food-route-planner label > span, .place-search-field > span { color: #826c51; font-size: 9px; font-weight: 700; }
+.food-route-planner select, .food-route-planner input { width: 100%; min-height: 38px; padding: 0 9px; border: 1px solid #d7c7af; border-radius: 6px; color: #4c3b2a; background: #fff; font: 10px var(--sans); }
+.place-search-field > div:first-of-type { display: grid; grid-template-columns: 1fr auto; }
+.place-search-field input { border-radius: 6px 0 0 6px; }
+.place-search-field > div:first-of-type > button { padding: 0 13px; border: 1px solid #9b642b; border-radius: 0 6px 6px 0; color: #fff; background: #9b642b; cursor: pointer; font-size: 10px; }
+.place-selected { display: flex; align-items: center; gap: 4px; color: #39746c; font-size: 9px; }
+.place-search-message { color: #b15c43; font-size: 9px; }
+.place-search-results { position: absolute; z-index: 20; top: 62px; right: 0; left: 0; overflow: hidden; border: 1px solid #d7c7af; border-radius: 7px; background: #fff; box-shadow: 0 12px 30px rgba(54,38,22,.18); }
+.place-search-results button { display: grid; width: 100%; gap: 3px; padding: 9px 11px; border: 0; border-bottom: 1px solid #eee5d8; color: #493827; background: #fff; cursor: pointer; text-align: left; }
+.place-search-results button:hover { background: #fff7ea; }
+.place-search-results strong { font-size: 10px; }
+.place-search-results span { overflow: hidden; color: #8b7a67; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.food-route-swap { width: 36px; height: 38px; border: 1px solid #d7c7af; border-radius: 6px; color: #8c5726; background: #fff; cursor: pointer; }
+.food-route-submit { display: inline-flex; min-height: 38px; align-items: center; justify-content: center; gap: 5px; padding: 0 13px; border: 0; border-radius: 6px; color: #fff; background: #28736c; cursor: pointer; font-size: 10px; font-weight: 700; text-decoration: none; white-space: nowrap; }
+.food-route-submit:disabled, .food-route-swap:disabled { opacity: .45; cursor: default; }
+.food-route-warning, .food-route-time-note { margin: -3px 0 0; font-size: 9px; }
+.food-route-warning { color: #b34f3c; }
+.food-route-time-note { color: #7d725f; }
+.food-route-loading, .food-route-result { display: flex; align-items: center; gap: 6px; margin: 0; padding: 8px 10px; border-radius: 6px; font-size: 10px; }
+.food-route-loading { color: #6b6257; background: #f2ede4; }
+.food-route-result { color: #215f58; background: #e5f2ed; font-weight: 700; }
+.food-route-recommendations { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; padding-top: 4px; }
+.food-route-summary { display: flex; grid-column: 1 / -1; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 11px; border-radius: 6px; color: #5c4b39; background: #f3eadb; }
+.food-route-summary strong { font-size: 11px; }
+.food-route-summary span { color: #85735f; font-size: 9px; }
+.food-route-recommendations article { display: grid; overflow: hidden; border: 1px solid #dfd2bd; border-radius: 8px; background: #fff; }
+.food-route-recommendations article.selected { border-color: #28736c; box-shadow: 0 0 0 2px rgba(40,115,108,.13); }
+.food-route-recommendations article > button { display: grid; min-width: 0; gap: 4px; padding: 11px; border: 0; color: #493827; background: transparent; cursor: pointer; text-align: left; }
+.food-route-recommendations article > button > span { color: #a46627; font-size: 8px; font-weight: 700; }
+.food-route-recommendations article strong, .food-route-recommendations article small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.food-route-recommendations article strong { font-size: 12px; }
+.food-route-recommendations article small { color: #81715f; font-size: 8px; }
+.food-route-recommendations article em { color: #28736c; font-size: 9px; font-style: normal; font-weight: 700; }
+.food-route-recommendations .food-route-map-button { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 8px; border: 0; color: #fff; background: #28736c; cursor: pointer; font-size: 9px; font-weight: 700; }
+.food-map-shell { position: relative; }
+.food-map { width: 100%; height: min(680px, 72vh); min-height: 470px; overflow: hidden; border: 1px solid #d9cbb5; border-radius: 11px; background: #eee7da; box-shadow: 0 13px 34px rgba(66,48,25,.1); }
+.food-map-legend { position: absolute; z-index: 3; top: 12px; left: 12px; display: flex; gap: 10px; padding: 7px 10px; border-radius: 7px; color: #5e5143; background: rgba(255,255,255,.94); box-shadow: 0 4px 14px rgba(41,30,20,.15); font-size: 9px; }
+.food-map-legend span { display: flex; align-items: center; gap: 5px; }
+.food-map-legend i { display: grid; width: 15px; height: 15px; place-items: center; border-radius: 50%; font-size: 8px; font-style: normal; }
+.restaurant-dot { background: #e0523b; }
+.tourist-dot, .tourist-map-pin { color: #fff; background: #7352a6; }
+.food-map-legend .route-guide-line { width: 22px; height: 0; border-top: 3px dashed #28736c; border-radius: 0; }
+.tourist-map-pin { display: grid; width: 25px; height: 25px; padding: 0; place-items: center; border: 2px solid #fff; border-radius: 50% 50% 50% 0; box-shadow: 0 3px 9px rgba(48,30,77,.34); cursor: pointer; font-size: 11px; transform: rotate(-45deg); }
+.tourist-map-pin span { transform: rotate(45deg); }
+.tourist-map-tooltip { display: grid; width: 230px; gap: 5px; padding: 12px; border: 1px solid #ddd2eb; border-radius: 8px; color: #433651; background: #fff; box-shadow: 0 10px 28px rgba(38,29,50,.24); }
+.tourist-map-tooltip span { color: #7352a6; font: 700 8px var(--mono); }
+.tourist-map-tooltip b { font-size: 13px; }
+.tourist-map-tooltip small { color: #786c81; font-size: 9px; line-height: 1.45; }
+.tourist-map-tooltip .tourist-map-hours { padding-top: 5px; border-top: 1px solid #e9e1f0; color: #5f418e; font-weight: 700; }
+.food-map-tooltip { display: grid; width: 270px; min-height: 102px; padding: 0; overflow: hidden; grid-template-columns: 96px 1fr; border: 0; border-radius: 8px; color: inherit; background: #fffaf1; box-shadow: 0 10px 28px rgba(38,29,19,.24); cursor: pointer; text-align: left; }
+.food-map-tooltip img { width: 96px; height: 100%; min-height: 102px; object-fit: cover; }
 .food-map-tooltip > div { display: flex; min-width: 0; padding: 10px; justify-content: center; flex-direction: column; }
 .food-map-tooltip span { color: #b06c29; font: 700 8px var(--mono); }
 .food-map-tooltip b { margin: 3px 0 5px; overflow: hidden; color: #3b3125; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
-.food-map-tooltip small { display: -webkit-box; overflow: hidden; color: #796958; font-size: 9px; line-height: 1.4; white-space: normal; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.food-map-tooltip small { display: -webkit-box; overflow: hidden; color: #796958; font-size: 9px; line-height: 1.4; white-space: normal; -webkit-box-orient: vertical; -webkit-line-clamp: 1; }
+.food-map-tooltip .food-map-hours { margin-top: 5px; padding-top: 5px; border-top: 1px solid #eadfce; color: #8a5a2b; -webkit-line-clamp: 2; }
+.food-map-error { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 8px; padding: 24px; border-radius: 11px; color: #7a6045; background: #f8f1e6; text-align: center; }
+.food-map-error strong { color: #4d3927; }
+.food-map-error span { max-width: 520px; font-size: 12px; line-height: 1.6; }
 .food-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 15px; }
 .food-card { padding: 0; overflow: hidden; border: 1px solid #e1d7c7; border-radius: 9px; color: inherit; background: #fff; box-shadow: 0 9px 25px rgba(66,48,25,.055); text-align: left; cursor: pointer; transition: transform .18s ease, box-shadow .18s ease; }
 .food-card:hover { transform: translateY(-3px); box-shadow: 0 15px 30px rgba(66,48,25,.12); }
@@ -369,6 +430,10 @@
 .food-modal-close { position: absolute; z-index: 2; top: 13px; right: 13px; width: 34px; height: 34px; border: 0; border-radius: 50%; color: #fff; background: rgba(38,29,20,.72); cursor: pointer; font-size: 24px; line-height: 1; }
 @media (max-width: 1000px) { .food-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 720px) { .food-hero { min-height: 190px; padding: 30px 24px; } .food-hero > svg { display: none; } .food-toolbar { align-items: stretch; flex-wrap: wrap; } .food-toolbar label { flex: 1 0 100%; } .food-toolbar select { flex: 1; } .food-view-switch { margin-left: auto; } .food-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .food-image { height: 120px; } .food-map { height: 65vh; min-height: 420px; } .food-modal { display: block; } .food-modal > img { height: 250px; min-height: 0; } .food-modal-copy { padding: 25px 20px; } }
+@media (max-width: 1000px) { .food-route-recommendations { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 900px) { .food-route-options { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 720px) { .food-route-places, .food-route-options { grid-template-columns: 1fr; } .food-route-swap { justify-self: center; transform: rotate(90deg); } }
+@media (max-width: 520px) { .food-route-recommendations { grid-template-columns: 1fr; } .food-route-summary { align-items: flex-start; flex-direction: column; } }
 @media (max-width: 430px) { .food-grid { grid-template-columns: 1fr; } .food-image { height: 180px; } }
 
 @media (max-width: 380px) {

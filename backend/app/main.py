@@ -7,6 +7,7 @@ from .cruise import cruise_summary
 from .forecast import forecast_months
 from .festival import festival_calendar
 from .restaurant import restaurant_directory
+from .routing import kakao_round_trip
 from .tourism import tourism_summary
 
 
@@ -61,6 +62,20 @@ def restaurants(
 ) -> dict:
     try:
         return restaurant_directory(query=q, district=district, page=page, page_size=page_size)
+    except ValueError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+
+
+@app.get("/api/route")
+def route(
+    mode: str = Query(pattern="^(car|traffic|walk|bicycle)$"),
+    start_lng: float = Query(ge=128, le=130),
+    start_lat: float = Query(ge=34, le=36),
+    stop_lng: float = Query(ge=128, le=130),
+    stop_lat: float = Query(ge=34, le=36),
+) -> dict:
+    try:
+        return kakao_round_trip(mode, start_lng, start_lat, stop_lng, stop_lat)
     except ValueError as error:
         raise HTTPException(status_code=503, detail=str(error)) from error
 

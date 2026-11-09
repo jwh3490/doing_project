@@ -14,7 +14,10 @@
 
 ```dotenv
 DATA_GO_KR_SERVICE_KEY=발급받은_인증키
+VITE_KAKAO_MAP_APP_KEY=카카오_JavaScript_키
 ```
+
+맛집 지도는 카카오 Maps JavaScript API를 사용합니다. 카카오 개발자 콘솔에서 앱을 만든 뒤 **JavaScript 키**를 위 변수에 입력하고, 플랫폼의 Web 사이트 도메인에 로컬 개발 주소(기본값 `http://localhost:5173`)를 등록해 주세요. 키를 바꾼 뒤에는 프런트엔드 개발 서버를 다시 시작해야 합니다.
 
 먼저 VS Code에서 새 PowerShell 터미널을 열고 프로젝트 루트 `C:\Users\jwh34\project`에서 실행합니다.
 
