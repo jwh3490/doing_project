@@ -9,6 +9,7 @@ from .festival import festival_calendar
 from .restaurant import restaurant_directory
 from .routing import kakao_round_trip
 from .tourism import tourism_summary
+from .travel_content import travel_themes
 
 
 load_dotenv()
@@ -66,13 +67,21 @@ def restaurants(
         raise HTTPException(status_code=503, detail=str(error)) from error
 
 
+@app.get("/api/travel-themes")
+def themed_travel() -> dict:
+    try:
+        return travel_themes()
+    except ValueError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+
+
 @app.get("/api/route")
 def route(
     mode: str = Query(pattern="^(car|traffic|walk|bicycle)$"),
     start_lng: float = Query(ge=128, le=130),
     start_lat: float = Query(ge=34, le=36),
-    stop_lng: float = Query(ge=128, le=130),
-    stop_lat: float = Query(ge=34, le=36),
+    stop_lng: list[float] = Query(min_length=1, max_length=5),
+    stop_lat: list[float] = Query(min_length=1, max_length=5),
 ) -> dict:
     try:
         return kakao_round_trip(mode, start_lng, start_lat, stop_lng, stop_lat)

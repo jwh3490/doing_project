@@ -36,7 +36,6 @@ import {
 } from 'recharts'
 import './App.css'
 import { loadKakaoMaps } from './lib/kakaoMap'
-import { TOURIST_ATTRACTIONS } from './data/touristAttractions'
 
 const numberFormat = new Intl.NumberFormat('ko-KR')
 
@@ -229,7 +228,7 @@ function FestivalCalendar({ data }) {
   )
 }
 
-function FoodMap({ restaurants, onSelect, routeStart, routeEnd, routePath = [] }) {
+function FoodMap({ restaurants, onSelect, routeStart, routeStops = [], routePath = [] }) {
   const containerRef = useRef(null)
   const [mapError, setMapError] = useState('')
 
@@ -296,56 +295,14 @@ function FoodMap({ restaurants, onSelect, routeStart, routeEnd, routePath = [] }
           overlays.push(marker, overlay)
         })
 
-        const placeSearch = new maps.services.Places()
-        TOURIST_ATTRACTIONS.forEach((attraction) => {
-          placeSearch.keywordSearch(`${attraction.name} 부산`, (places, status) => {
-            if (disposed || status !== maps.services.Status.OK || !places.length) return
-            const place = places.find((item) => (item.road_address_name || item.address_name || '').includes('부산')) || places[0]
-            const position = new maps.LatLng(Number(place.y), Number(place.x))
-            const pin = document.createElement('button')
-            pin.type = 'button'
-            pin.className = 'tourist-map-pin'
-            const pinIcon = document.createElement('span')
-            pinIcon.textContent = '★'
-            pin.appendChild(pinIcon)
-            pin.title = attraction.name
-            pin.setAttribute('aria-label', `${attraction.name} 관광지 정보`)
-
-            const detail = document.createElement('div')
-            detail.className = 'tourist-map-tooltip'
-            const category = document.createElement('span')
-            category.textContent = '2025 부산관광지도'
-            const name = document.createElement('b')
-            name.textContent = attraction.name
-            const address = document.createElement('small')
-            address.textContent = attraction.address || place.road_address_name || place.address_name
-            detail.append(category, name, address)
-            if (attraction.hours) {
-              const hours = document.createElement('small')
-              hours.className = 'tourist-map-hours'
-              hours.textContent = attraction.hours
-              detail.appendChild(hours)
-            }
-
-            const pinOverlay = new maps.CustomOverlay({ map, content: pin, position, yAnchor: 0.5, xAnchor: 0.5 })
-            const detailOverlay = new maps.CustomOverlay({ content: detail, position, yAnchor: 1.35 })
-            let detailVisible = false
-            pin.addEventListener('click', () => {
-              detailVisible = !detailVisible
-              detailOverlay.setMap(detailVisible ? map : null)
-            })
-            overlays.push(pinOverlay, detailOverlay)
-          })
-        })
-
-        if (routeStart && routeEnd) {
+        if (routeStart && routeStops.length) {
           const start = new maps.LatLng(Number(routeStart.lat), Number(routeStart.lng))
-          const end = new maps.LatLng(Number(routeEnd.lat), Number(routeEnd.lng))
           const startMarker = new maps.Marker({ map, position: start, title: `출발 · ${routeStart.name}` })
-          const endMarker = new maps.Marker({ map, position: end, title: `도착 · ${routeEnd.name}` })
+          const stopPoints = routeStops.map((stop) => new maps.LatLng(Number(stop.lat), Number(stop.lng)))
+          const stopMarkers = stopPoints.map((position, index) => new maps.Marker({ map, position, title: `${index + 1}번째 경유 · ${routeStops[index].name}` }))
           const kakaoPath = routePath.length
             ? routePath.map(([lat, lng]) => new maps.LatLng(Number(lat), Number(lng)))
-            : [start, end]
+            : [start, ...stopPoints, start]
           const guideLine = new maps.Polyline({
             map,
             path: kakaoPath,
@@ -357,7 +314,7 @@ function FoodMap({ restaurants, onSelect, routeStart, routeEnd, routePath = [] }
           const routeBounds = new maps.LatLngBounds()
           kakaoPath.forEach((point) => routeBounds.extend(point))
           map.setBounds(routeBounds, 70, 70, 70, 70)
-          overlays.push(startMarker, endMarker, guideLine)
+          overlays.push(startMarker, ...stopMarkers, guideLine)
         }
       })
       .catch((error) => {
@@ -370,11 +327,11 @@ function FoodMap({ restaurants, onSelect, routeStart, routeEnd, routePath = [] }
       if (containerRef.current) containerRef.current.replaceChildren()
       map = null
     }
-  }, [restaurants, onSelect, routeStart, routeEnd, routePath])
+  }, [restaurants, onSelect, routeStart, routeStops, routePath])
 
   return <div className="food-map-shell">
     <div ref={containerRef} className="food-map" aria-label="카카오 지도에 표시된 부산 맛집" />
-    <div className="food-map-legend"><span><i className="restaurant-dot" />맛집</span><span><i className="tourist-dot">★</i>관광지</span>{routeStart && routeEnd && <span><i className="route-guide-line" />{routePath.length ? '카카오 추천 경로' : '경로 조회 중'}</span>}</div>
+    <div className="food-map-legend"><span><i className="restaurant-dot" />맛집</span><span><i className="tourist-dot">★</i>관광지</span>{routeStart && routeStops.length > 0 && <span><i className="route-guide-line" />{routePath.length ? '카카오 추천 경로' : '경로 조회 중'}</span>}</div>
     {mapError && <div className="food-map-error" role="alert"><MapPin /><strong>지도를 표시할 수 없습니다.</strong><span>{mapError}</span></div>}
   </div>
 }
@@ -433,6 +390,7 @@ function PlaceSearchField({ label, place, onSelect }) {
 
 const TRAVEL_SPEED_KMH = { car: 25, traffic: 18, walk: 4, bicycle: 12 }
 const SCHEDULE_BUFFER_MINUTES = 10
+const TOURIST_STAY_MINUTES = 60
 
 function distanceKm(from, to) {
   const radians = (value) => value * Math.PI / 180
@@ -453,15 +411,17 @@ function RestaurantExplorer({ routeOnly = false }) {
   const [view, setView] = useState(routeOnly ? 'map' : 'list')
   const [error, setError] = useState('')
   const [routeStart, setRouteStart] = useState(null)
-  const [routeEnd, setRouteEnd] = useState(null)
+  const [routeStops, setRouteStops] = useState([])
   const [travelMode, setTravelMode] = useState('car')
   const [departureAt, setDepartureAt] = useState('')
   const [arrivalAt, setArrivalAt] = useState('')
-  const [mealMinutes, setMealMinutes] = useState(60)
   const [routePath, setRoutePath] = useState([])
   const [routeMeta, setRouteMeta] = useState(null)
   const [routeError, setRouteError] = useState('')
   const [routeLoading, setRouteLoading] = useState(false)
+  const [travelThemes, setTravelThemes] = useState([])
+  const [themeError, setThemeError] = useState('')
+  const [selectedTheme, setSelectedTheme] = useState('maritime')
 
   useEffect(() => {
     const controller = new AbortController()
@@ -483,7 +443,27 @@ function RestaurantExplorer({ routeOnly = false }) {
   }, [query, district, page, view])
 
   useEffect(() => {
-    if (!routeStart || !routeEnd) {
+    if (!routeOnly) return undefined
+    const controller = new AbortController()
+    setThemeError('')
+    fetch('/api/travel-themes', { signal: controller.signal })
+      .then(async (response) => {
+        const body = await response.json().catch(() => ({}))
+        if (!response.ok) throw new Error(body.detail || '관광 주제 정보를 불러오지 못했습니다.')
+        return body
+      })
+      .then((body) => {
+        setTravelThemes(body.themes || [])
+        if (body.errors?.length) setThemeError(body.errors.map((item) => item.message).join(' · '))
+      })
+      .catch((loadError) => {
+        if (loadError.name !== 'AbortError') setThemeError(loadError.message)
+      })
+    return () => controller.abort()
+  }, [routeOnly])
+
+  useEffect(() => {
+    if (!routeStart || !routeStops.length) {
       setRoutePath([])
       setRouteMeta(null)
       setRouteError('')
@@ -494,8 +474,10 @@ function RestaurantExplorer({ routeOnly = false }) {
       mode: travelMode,
       start_lng: routeStart.lng,
       start_lat: routeStart.lat,
-      stop_lng: routeEnd.lng,
-      stop_lat: routeEnd.lat,
+    })
+    routeStops.forEach((stop) => {
+      params.append('stop_lng', stop.lng)
+      params.append('stop_lat', stop.lat)
     })
     setRouteLoading(true)
     setRouteError('')
@@ -515,7 +497,7 @@ function RestaurantExplorer({ routeOnly = false }) {
       })
       .finally(() => setRouteLoading(false))
     return () => controller.abort()
-  }, [routeStart, routeEnd, travelMode])
+  }, [routeStart, routeStops, travelMode])
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total_count / data.page_size)) : 1
   const invalidSchedule = departureAt && arrivalAt && new Date(arrivalAt) <= new Date(departureAt)
@@ -524,10 +506,11 @@ function RestaurantExplorer({ routeOnly = false }) {
     : 0
   const recommendations = useMemo(() => {
     if (!data?.restaurants || !routeStart || !availableMinutes) return []
-    const travelBudget = availableMinutes - Number(mealMinutes) - SCHEDULE_BUFFER_MINUTES
+    const travelBudget = availableMinutes - TOURIST_STAY_MINUTES - SCHEDULE_BUFFER_MINUTES
     if (travelBudget <= 0) return []
     const speed = TRAVEL_SPEED_KMH[travelMode]
-    return data.restaurants
+    const theme = travelThemes.find((item) => item.id === selectedTheme)
+    return (theme?.places || [])
       .filter((restaurant) => restaurant.lat && restaurant.lng)
       .map((restaurant) => {
         const distance = distanceKm(routeStart, restaurant)
@@ -536,37 +519,61 @@ function RestaurantExplorer({ routeOnly = false }) {
       })
       .filter((restaurant) => restaurant.roundTripMinutes <= travelBudget)
       .sort((a, b) => a.roundTripMinutes - b.roundTripMinutes || a.name.localeCompare(b.name, 'ko'))
-      .slice(0, 8)
-  }, [data, routeStart, availableMinutes, mealMinutes, travelMode])
-  const showRecommendationOnMap = (restaurant) => {
-    setRouteEnd(restaurant)
+      .slice(0, 30)
+  }, [data, travelThemes, selectedTheme, routeStart, availableMinutes, travelMode])
+  const estimateItineraryMinutes = (stops) => {
+    if (!routeStart || !stops.length) return 0
+    const points = [routeStart, ...stops, routeStart]
+    const travelMinutes = points.slice(0, -1).reduce((total, point, index) => {
+      const legDistance = distanceKm(point, points[index + 1])
+      return total + Math.max(5, Math.ceil(legDistance / TRAVEL_SPEED_KMH[travelMode] * 60 * 1.25))
+    }, 0)
+    return travelMinutes + TOURIST_STAY_MINUTES * stops.length + SCHEDULE_BUFFER_MINUTES
+  }
+  const toggleRouteStop = (place) => {
+    setRouteStops((current) => {
+      if (current.some((stop) => stop.id === place.id)) return current.filter((stop) => stop.id !== place.id)
+      if (current.length >= 5) return current
+      return [...current, place]
+    })
     window.requestAnimationFrame(() => {
       document.querySelector('.food-map-shell')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    })
+  }
+  const moveRouteStop = (index, offset) => {
+    setRouteStops((current) => {
+      const nextIndex = index + offset
+      if (nextIndex < 0 || nextIndex >= current.length) return current
+      const next = [...current]
+      ;[next[index], next[nextIndex]] = [next[nextIndex], next[index]]
+      return next
     })
   }
 
   return <>
     <section className={`food-hero ${routeOnly ? 'route-hero' : ''}`}>
       {routeOnly
-        ? <><div><p className="eyebrow">BUSAN · ROUND TRIP</p><h1>시간 안에 다녀오는 맛집</h1><p>출발지와 복귀 시간을 입력하면 왕복 가능한 맛집과 지도 경로를 추천합니다.</p></div><Waypoints size={72} strokeWidth={1.15} aria-hidden="true" /></>
+        ? <><div><p className="eyebrow">BUSAN · THEMED ROUTE</p><h1>주제로 만나는 부산</h1><p>공공 API가 제공하는 여행 주제를 골라 시간 안에 가능한 경로를 찾아보세요.</p></div><Waypoints size={72} strokeWidth={1.15} aria-hidden="true" /></>
         : <><div><p className="eyebrow">TASTE OF BUSAN</p><h1>부산의 한 끼를 찾다</h1><p>동네와 메뉴로 부산의 맛집을 가볍게 탐색해 보세요.</p></div><Utensils size={72} strokeWidth={1.15} aria-hidden="true" /></>}
     </section>
     {data && routeOnly && <section className="food-route-planner" aria-label="맛집 경로 선택">
-      <div className="food-route-title"><Waypoints size={20} /><div><strong>시간 안에 다녀오는 맛집</strong><span>출발지에서 맛집에 들렀다가 같은 장소로 돌아오는 왕복 일정을 추천합니다.</span></div></div>
-      <div className="food-route-origin"><PlaceSearchField label="출발 및 복귀 장소" place={routeStart} onSelect={(place) => { setRouteStart(place); setRouteEnd(null) }} /></div>
+      <div className="food-route-title"><Waypoints size={20} /><div><strong>주제별 시간 맞춤 경로</strong><span>공공데이터포털의 부산 관광정보를 바탕으로 체류 60분과 복귀 여유 10분을 포함해 계산합니다.</span></div></div>
+      <label className="route-theme-filter"><span>여행 테마</span><select value={selectedTheme} onChange={(event) => { setSelectedTheme(event.target.value); setRouteStops([]) }}>{travelThemes.map((theme) => <option value={theme.id} key={theme.id}>{theme.name} · {theme.count}곳</option>)}</select></label>
+      {themeError && <p className="food-route-warning">일부 관광 API를 불러오지 못했습니다: {themeError}</p>}
+      <div className="food-route-origin"><PlaceSearchField label="출발 및 복귀 장소" place={routeStart} onSelect={(place) => { setRouteStart(place); setRouteStops([]) }} /></div>
       <div className="food-route-options">
         <label><span>출발 일시</span><input type="datetime-local" value={departureAt} onChange={(event) => setDepartureAt(event.target.value)} /></label>
         <label><span>복귀 마감 일시</span><input type="datetime-local" value={arrivalAt} min={departureAt || undefined} onChange={(event) => setArrivalAt(event.target.value)} /></label>
-        <label><span>식사시간</span><select value={mealMinutes} onChange={(event) => setMealMinutes(Number(event.target.value))}><option value="30">30분</option><option value="60">60분</option><option value="90">90분</option><option value="120">120분</option></select></label>
         <label><span>이동수단</span><select value={travelMode} onChange={(event) => setTravelMode(event.target.value)}><option value="car">자동차</option><option value="traffic">대중교통</option><option value="walk">도보</option><option value="bicycle">자전거</option></select></label>
       </div>
       {invalidSchedule && <p className="food-route-warning">복귀 마감 일시는 출발 일시보다 늦어야 합니다.</p>}
-      {!invalidSchedule && routeStart && departureAt && arrivalAt && recommendations.length > 0 && <div className="food-route-recommendations"><div className="food-route-summary"><strong>{availableMinutes}분 일정</strong><span>식사 {mealMinutes}분 · 안전 여유 {SCHEDULE_BUFFER_MINUTES}분 · 가까운 순 추천</span></div>{recommendations.map((restaurant) => <article className={routeEnd?.id === restaurant.id ? 'selected' : ''} key={`route-${restaurant.id}`}><button type="button" onClick={() => showRecommendationOnMap(restaurant)}><span>{restaurant.district}</span><strong>{restaurant.name}</strong><small>{restaurant.menu || restaurant.address}</small><em>편도 약 {restaurant.oneWayMinutes}분 · {restaurant.distance.toFixed(1)}km</em></button><button className="food-route-map-button" type="button" onClick={() => showRecommendationOnMap(restaurant)}><MapIcon size={12} /> 지도에서 보기</button></article>)}</div>}
+      {!invalidSchedule && routeStart && departureAt && arrivalAt && recommendations.length > 0 && <div className="food-route-recommendations"><div className="food-route-summary"><strong>{availableMinutes}분 일정 · 경유지 최대 5곳</strong><span>체류 {TOURIST_STAY_MINUTES}분/곳 · 복귀 여유 {SCHEDULE_BUFFER_MINUTES}분</span></div><div className="route-place-list">{recommendations.map((place) => { const checked = routeStops.some((stop) => stop.id === place.id); const exceedsTime = !checked && estimateItineraryMinutes([...routeStops, place]) > availableMinutes; return <label className={`${checked ? 'selected' : ''} tourism-result ${exceedsTime ? 'unavailable' : ''}`} key={`route-${place.id}`} title={place.transport_info || ''}><input type="checkbox" checked={checked} disabled={!checked && (routeStops.length >= 5 || exceedsTime)} onChange={() => toggleRouteStop(place)} /><span className="route-place-type">{place.theme_name}</span><strong>{place.name}</strong><small>{place.hours || place.transport_info || place.address}</small><em>{exceedsTime ? '현재 일정에 추가 불가' : `편도 약 ${place.oneWayMinutes}분 · ${place.distance.toFixed(1)}km`}</em></label> })}</div></div>}
+      {routeStops.length > 0 && <div className="selected-route-stops"><strong>선택한 경유 순서</strong><ol>{routeStops.map((stop, index) => <li key={`selected-${stop.id}`}><b>{index + 1}</b><span>{stop.name}</span><small>{stop.kind === 'tourism' ? '관광지' : '맛집'}</small><button type="button" disabled={index === 0} onClick={() => moveRouteStop(index, -1)} aria-label={`${stop.name} 순서 올리기`}>↑</button><button type="button" disabled={index === routeStops.length - 1} onClick={() => moveRouteStop(index, 1)} aria-label={`${stop.name} 순서 내리기`}>↓</button><button type="button" onClick={() => toggleRouteStop(stop)} aria-label={`${stop.name} 경유지에서 제거`}>×</button></li>)}</ol></div>}
       {routeLoading && <p className="food-route-loading"><RefreshCw className="spin" size={13} /> 카카오 추천 경로를 불러오는 중입니다.</p>}
-      {routeMeta && <p className="food-route-result">카카오 왕복 경로 · 약 {Math.ceil(routeMeta.duration_seconds / 60)}분 · {(routeMeta.distance_meters / 1000).toFixed(1)}km</p>}
+      {routeMeta && <p className={`food-route-result ${Math.ceil(routeMeta.duration_seconds / 60) + TOURIST_STAY_MINUTES * routeStops.length + SCHEDULE_BUFFER_MINUTES > availableMinutes ? 'over-time' : ''}`}>카카오 왕복 경로 · {({ car: '자동차', traffic: '대중교통', walk: '도보', bicycle: '자전거' })[travelMode]} · 이동 약 {Math.ceil(routeMeta.duration_seconds / 60)}분 · {(routeMeta.distance_meters / 1000).toFixed(1)}km · 체류와 여유 포함 총 {Math.ceil(routeMeta.duration_seconds / 60) + TOURIST_STAY_MINUTES * routeStops.length + SCHEDULE_BUFFER_MINUTES}분</p>}
       {routeError && <p className="food-route-warning">{routeError}</p>}
-      {!invalidSchedule && routeStart && departureAt && arrivalAt && recommendations.length === 0 && <p className="food-route-warning">현재 시간 조건으로 추천할 수 있는 맛집이 없습니다. 식사시간을 줄이거나 복귀 시간을 늦춰 주세요.</p>}
-      <p className="food-route-time-note">시간은 브라우저 안에서만 계산하며 카카오에는 출발지·맛집·복귀지 좌표만 전달합니다. 이동시간은 거리 기반 예상치이므로 실제 교통 상황과 다를 수 있습니다.</p>
+      {!invalidSchedule && routeStart && departureAt && arrivalAt && recommendations.length === 0 && <p className="food-route-warning">현재 시간 안에 60분 체류하고 복귀할 수 있는 관광지가 없습니다. 복귀 시간을 늦춰 주세요.</p>}
+      <p className="food-route-time-note">시간은 브라우저 안에서만 계산하며 카카오에는 출발지·선택 관광지·복귀지 좌표만 전달합니다. 추천 단계의 이동시간은 거리 기반 예상치이며, 선택 후 카카오 실제 경로 시간으로 다시 확인합니다.</p>
     </section>}
     {!routeOnly && <section className="food-toolbar" aria-label="맛집 검색 조건">
       <label><Search size={17} /><input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1) }} placeholder="맛집, 메뉴, 주소 검색" /></label>
@@ -577,7 +584,7 @@ function RestaurantExplorer({ routeOnly = false }) {
     {error && <div className="error-message" role="alert"><strong>맛집 정보를 불러오지 못했습니다.</strong><span>{error}</span></div>}
     {!data && !error && <div className="state-message"><RefreshCw className="spin" size={18} /> 부산 맛집을 찾는 중입니다.</div>}
     {data && <>
-      {data.restaurants.length && (routeOnly || view === 'map') && <FoodMap restaurants={data.restaurants} onSelect={setSelected} routeStart={routeStart} routeEnd={routeEnd} routePath={routePath} />}
+      {data.restaurants.length && (routeOnly || view === 'map') && <FoodMap restaurants={data.restaurants} onSelect={setSelected} routeStart={routeStart} routeStops={routeStops} routePath={routePath} />}
       {data.restaurants.length && !routeOnly && view === 'list' && <section className="food-grid">
         {data.restaurants.map((restaurant) => <button className="food-card" type="button" key={restaurant.id} onClick={() => setSelected(restaurant)}>
           <div className="food-image">{restaurant.thumbnail ? <img src={restaurant.thumbnail} alt="" loading="lazy" /> : <Utensils size={28} />}</div>
@@ -1056,7 +1063,7 @@ function App() {
           <span className="live-indicator" />
           <span>월간 데이터</span>
           <span className="topbar-divider" />
-          <span>{activeTab === 'air' ? (dashboard?.last_actual_month ? formatMonth(dashboard.last_actual_month) : '데이터 확인 중') : activeTab === 'tourism' ? '2021 — 2026 월별 동향' : activeTab === 'cruise' ? (cruise ? `${formatMonth(cruise.period_start)} — ${formatMonth(cruise.period_end)}` : '데이터 확인 중') : activeTab === 'festival' ? '실시간 축제 정보' : activeTab === 'demand' ? '현재부터 6개월 추정' : activeTab === 'planner' ? '데이터 기반 모의 일정' : activeTab === 'route' ? '왕복 가능 맛집 경로' : '부산 맛집 정보'}</span>
+          <span>{activeTab === 'air' ? (dashboard?.last_actual_month ? formatMonth(dashboard.last_actual_month) : '데이터 확인 중') : activeTab === 'tourism' ? '2021 — 2026 월별 동향' : activeTab === 'cruise' ? (cruise ? `${formatMonth(cruise.period_start)} — ${formatMonth(cruise.period_end)}` : '데이터 확인 중') : activeTab === 'festival' ? '실시간 축제 정보' : activeTab === 'demand' ? '현재부터 6개월 추정' : activeTab === 'planner' ? '데이터 기반 모의 일정' : activeTab === 'route' ? '시간 내 관광지 왕복 경로' : '부산 맛집 정보'}</span>
         </div>
       </header>
 

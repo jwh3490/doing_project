@@ -20,11 +20,11 @@ def _request_json(url: str, key: str) -> dict:
         raise ValueError("카카오 경로 API에 연결하지 못했습니다.") from error
 
 
-def _car_route(key: str, start: tuple[float, float], stop: tuple[float, float]) -> dict:
+def _car_route(key: str, start: tuple[float, float], stops: list[tuple[float, float]]) -> dict:
     query = urlencode({
         "origin": f"{start[0]},{start[1]}",
         "destination": f"{start[0]},{start[1]}",
-        "waypoints": f"{stop[0]},{stop[1]}",
+        "waypoints": "|".join(f"{stop[0]},{stop[1]}" for stop in stops),
         "priority": "RECOMMEND",
         "summary": "false",
     })
@@ -41,11 +41,12 @@ def _car_route(key: str, start: tuple[float, float], stop: tuple[float, float]) 
     return {"path": points, "duration_seconds": summary.get("duration"), "distance_meters": summary.get("distance")}
 
 
-def _map_route(key: str, mode: str, start: tuple[float, float], stop: tuple[float, float]) -> dict:
+def _map_route(key: str, mode: str, start: tuple[float, float], stops: list[tuple[float, float]]) -> dict:
     endpoint = {"walk": "walk", "bicycle": "bicycle"}[mode]
     query = urlencode({
         "start_x": start[0], "start_y": start[1],
-        "via_x": stop[0], "via_y": stop[1],
+        "via_x": ",".join(str(stop[0]) for stop in stops),
+        "via_y": ",".join(str(stop[1]) for stop in stops),
         "end_x": start[0], "end_y": start[1],
         "input_coord": "WGS84", "output_coord": "WGS84",
     })
@@ -78,23 +79,26 @@ def _traffic_leg(key: str, start: tuple[float, float], end: tuple[float, float])
     return {"path": points, "duration_seconds": properties.get("totalTime", 0), "distance_meters": properties.get("totalDistance", 0)}
 
 
-def kakao_round_trip(mode: str, start_lng: float, start_lat: float, stop_lng: float, stop_lat: float) -> dict:
+def kakao_round_trip(mode: str, start_lng: float, start_lat: float, stop_lng: list[float], stop_lat: list[float]) -> dict:
     key = os.getenv("KAKAO_REST_API_KEY")
     if not key:
         raise ValueError("KAKAO_REST_API_KEY 환경변수에 카카오 REST API 키를 설정해 주세요.")
     start = (start_lng, start_lat)
-    stop = (stop_lng, stop_lat)
+    if not stop_lng or len(stop_lng) != len(stop_lat):
+        raise ValueError("경유지 좌표가 올바르지 않습니다.")
+    if len(stop_lng) > 5:
+        raise ValueError("경유지는 최대 5곳까지 선택할 수 있습니다.")
+    stops = list(zip(stop_lng, stop_lat))
     if mode == "car":
-        result = _car_route(key, start, stop)
+        result = _car_route(key, start, stops)
     elif mode in {"walk", "bicycle"}:
-        result = _map_route(key, mode, start, stop)
+        result = _map_route(key, mode, start, stops)
     elif mode == "traffic":
-        outbound = _traffic_leg(key, start, stop)
-        inbound = _traffic_leg(key, stop, start)
+        legs = [_traffic_leg(key, leg_start, leg_end) for leg_start, leg_end in zip([start, *stops], [*stops, start])]
         result = {
-            "path": outbound["path"] + inbound["path"],
-            "duration_seconds": outbound["duration_seconds"] + inbound["duration_seconds"],
-            "distance_meters": outbound["distance_meters"] + inbound["distance_meters"],
+            "path": [point for leg in legs for point in leg["path"]],
+            "duration_seconds": sum(leg["duration_seconds"] for leg in legs),
+            "distance_meters": sum(leg["distance_meters"] for leg in legs),
         }
     else:
         raise ValueError("지원하지 않는 이동수단입니다.")
